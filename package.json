@@ -4,6 +4,7 @@
     "@clerk/nextjs": "^6.10.6",
     "@langchain/anthropic": "^0.3.12",
     "@langchain/core": "^0.3.33",
+    "@microsoft/fetch-event-source": "^2.0.1",
     "@prisma/client": "^6.3.1",
     "@radix-ui/react-alert-dialog": "^1.1.2",
     "@radix-ui/react-dialog": "^1.1.5",

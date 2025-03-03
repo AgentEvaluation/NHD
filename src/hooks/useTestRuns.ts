@@ -25,23 +25,28 @@ export function useTestRuns() {
   };
 
   const updateRun = async (updatedRun: TestRun) => {
-    await fetch('/api/tools/test-runs', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(updatedRun)
-    });
     setRuns(prev => {
       const index = prev.findIndex(run => run.id === updatedRun.id);
-      if (index === -1) return prev;
-      
       const newRuns = [...prev];
-      newRuns[index] = updatedRun;
-      return newRuns;
+      
+      if (index === -1) {
+        return [updatedRun, ...newRuns];
+      } else {
+        newRuns[index] = updatedRun;
+        return newRuns;
+      }
     });
-
+  
+    // Also update selectedRun if it's the same one
     if (selectedRun?.id === updatedRun.id) {
       setSelectedRun(updatedRun);
     }
+  
+    fetch('/api/tools/test-runs', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(updatedRun)
+    }).catch(err => console.error("Failed to save run:", err));
   };
 
   return {

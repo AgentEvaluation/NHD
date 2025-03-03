@@ -96,7 +96,8 @@ export class QaAgent {
         formattedInput
       );
       let chatResponse = apiResponse?.response?.text || ConversationHandler.extractChatResponse(apiResponse, this.config.apiConfig.rules);
-
+      console.log("chatResponse");
+      console.log(chatResponse);
       totalResponseTime += Date.now() - startTime;
       
       const chatId = uuidv4();
@@ -107,7 +108,7 @@ export class QaAgent {
         role: 'user',
         content: testMessage,
         metrics: {
-          responseTime: totalResponseTime,
+          responseTime: totalResponseTime || 0,
           validationScore: 1
         }
       });
@@ -118,7 +119,7 @@ export class QaAgent {
         role: 'assistant',
         content: chatResponse,
         metrics: {
-          responseTime: totalResponseTime,
+          responseTime: totalResponseTime || 0,
           validationScore: 1
         }
 
@@ -159,8 +160,7 @@ export class QaAgent {
             role: 'user',
             content: followUpMessage,
             metrics: {
-              responseTime: turnResponseTime,
-              validationScore: 1
+              responseTime: turnResponseTime || 0
             }
           });
           // Add assistant message
@@ -170,7 +170,7 @@ export class QaAgent {
             role: 'assistant',
             content: chatResponse,
             metrics: {
-              responseTime: turnResponseTime,
+              responseTime: turnResponseTime || 0,
               validationScore: 1
             }
           });
@@ -217,7 +217,7 @@ export class QaAgent {
           explanation: conversationValidation.explanation,
           conversationResult: conversationValidation,
           metrics: {
-            responseTime: totalResponseTime
+            responseTime: totalResponseTime || 0
           }
         }
       };
@@ -226,6 +226,237 @@ export class QaAgent {
       throw error;
     }
   }
+
+  async runTestStreaming(
+    scenario: string,
+    expectedOutput: string,
+    onMessage: (message: any) => void
+  ): Promise<void> {
+    try {
+      // Get persona system prompt if available
+      let personaSystemPrompt;
+      if (this.config.persona) {
+        try {
+          const persona = await dbService.getPersonaById(this.config.persona);
+          if (persona && persona.system_prompt) {
+            personaSystemPrompt = persona.system_prompt;
+          }
+        } catch (error) {
+          console.error('Error fetching persona:', error);
+        }
+      }
+      
+      // Create the prompt with the persona's system prompt or default
+      this.prompt = ChatPromptTemplate.fromMessages([
+        ["system", SYSTEM_PROMPTS.API_TESTER(personaSystemPrompt)],
+        ["human", "{input}"]
+      ]);
+  
+      const chain = RunnableSequence.from([
+        this.prompt,
+        this.model,
+        new StringOutputParser()
+      ]);
+  
+      // Generate initial conversation plan
+      const planResult = await chain.invoke({
+        input: `Test this scenario: ${scenario}\nExpected behavior: ${expectedOutput}\n\nPlan and start a natural conversation to test this scenario.`
+      });
+  
+      const testMessage = ConversationHandler.extractTestMessage(planResult);
+      const conversationPlan = ConversationHandler.extractConversationPlan(planResult);
+      
+      let allMessages: TestMessage[] = [];
+      let totalResponseTime = 0;
+      let startTime = Date.now();
+      const chatId = uuidv4();
+  
+      // Initial message - user
+      const userMessage: TestMessage = {
+        id: uuidv4(),
+        chatId: chatId,
+        role: 'user',
+        content: testMessage,
+        metrics: {
+          responseTime: 0,
+          validationScore: 1
+        }
+      };
+      
+      allMessages.push(userMessage);
+      onMessage({ 
+        type: "message", 
+        message: userMessage
+      });
+  
+      // Format and send to API
+      const formattedInput = ApiHandler.formatInput(testMessage, this.config.apiConfig.inputFormat);
+      let apiResponse = await ApiHandler.callEndpoint(
+        this.config.endpointUrl, 
+        this.config.headers, 
+        formattedInput
+      );
+      
+      // Extract and process response
+      let chatResponse = apiResponse?.response?.text || 
+        ConversationHandler.extractChatResponse(apiResponse, this.config.apiConfig.rules);
+      
+      totalResponseTime += Date.now() - startTime;
+      
+      // Initial message - assistant
+      const assistantMessage: TestMessage = {
+        id: uuidv4(),
+        chatId: chatId,
+        role: 'assistant',
+        content: chatResponse,
+        metrics: {
+          responseTime: totalResponseTime || 0,
+          validationScore: 1
+        }
+      };
+      
+      allMessages.push(assistantMessage);
+      onMessage({ 
+        type: "message", 
+        message: assistantMessage 
+      });
+  
+      // Handle multi-turn conversation
+      if (conversationPlan && conversationPlan.length > 0) {
+        for (const plannedTurn of conversationPlan) {
+          const followUpResult = await chain.invoke({
+            input: `Previous API response: "${chatResponse}"\n\nGiven this response and your plan: "${plannedTurn}"\n\nContinue the conversation naturally.`
+          });
+          
+          const followUpMessage = ConversationHandler.extractTestMessage(followUpResult);
+          startTime = Date.now();
+          
+          // User follow-up message
+          const userFollowUpMessage: TestMessage = {
+            id: uuidv4(),
+            chatId: chatId,
+            role: 'user',
+            content: followUpMessage,
+            metrics: {
+              responseTime: 0,
+              validationScore: 1
+            }
+          };
+          
+          allMessages.push(userFollowUpMessage);
+          onMessage({ 
+            type: "message", 
+            message: userFollowUpMessage 
+          });
+          
+          // Format and send follow-up to API
+          const followUpInput = ApiHandler.formatInput(followUpMessage, this.config.apiConfig.inputFormat);
+  
+          try {
+            apiResponse = await ApiHandler.callEndpoint(
+              this.config.endpointUrl,
+              this.config.headers,
+              followUpInput
+            );
+            
+            chatResponse = apiResponse?.response?.text || 
+              ConversationHandler.extractChatResponse(apiResponse, this.config.apiConfig.rules);
+              
+            const turnResponseTime = Date.now() - startTime;
+            totalResponseTime += turnResponseTime;
+            
+            // Assistant follow-up response
+            const assistantFollowUpMessage: TestMessage = {
+              id: uuidv4(),
+              chatId: chatId,
+              role: 'assistant',
+              content: chatResponse,
+              metrics: {
+                responseTime: turnResponseTime,
+                validationScore: 1
+              }
+            };
+            
+            allMessages.push(assistantFollowUpMessage);
+            onMessage({ 
+              type: "message", 
+              message: assistantFollowUpMessage 
+            });
+            
+          } catch (error) {
+            if (error instanceof Error && error.name === 'AbortError') {
+              throw new Error('API request timed out after 10 seconds');
+            }
+            throw error;
+          }
+        }
+      }
+  
+      // Validate and analyze
+      const formatValid = ResponseValidator.validateResponseFormat(apiResponse, this.config.apiConfig.outputFormat);
+      const conditionMet = ResponseValidator.validateCondition(apiResponse, this.config.apiConfig.rules);
+  
+      const fullConversation = allMessages
+        .map(m => `${m.role === 'user' ? 'Human' : 'Assistant'}: ${m.content}`)
+        .join('\n\n');
+  
+      // Validate entire conversation
+      const conversationValidation = await this.validateFullConversation(
+        fullConversation,
+        scenario,
+        expectedOutput
+      );
+  
+      // Update messages with validation results
+      const validatedMessages = allMessages.map(msg => ({
+        ...msg,
+        isCorrect: msg.id === allMessages[allMessages.length - 1].id ? 
+          conversationValidation.isCorrect : 
+          true,
+        explanation: msg.id === allMessages[allMessages.length - 1].id ? 
+          conversationValidation.explanation : 
+          undefined
+      }));
+      
+      // Send validation results
+      onMessage({
+        type: "validation",
+        result: {
+          passedTest: formatValid && conditionMet && conversationValidation.isCorrect,
+          formatValid,
+          conditionMet,
+          explanation: conversationValidation.explanation,
+          conversationResult: conversationValidation,
+          metrics: {
+            responseTime: 0,
+            validationScore: 1
+          }
+        }
+      });
+      
+      // Send complete conversation with validation
+      onMessage({
+        type: "complete",
+        conversation: {
+          humanMessage: testMessage,
+          rawInput: formattedInput,
+          rawOutput: apiResponse,
+          chatResponse,
+          allMessages: validatedMessages
+        }
+      });
+      
+      // No need to return anything since we're streaming the responses
+    } catch (error) {
+      console.error('Error in runTestStreaming:', error);
+      onMessage({ 
+        type: "error", 
+        error: error || "Unknown error occurred" 
+      });
+      throw error;
+    }
+  }
+  
 
   private async validateFullConversation(
     fullConversation: string,
