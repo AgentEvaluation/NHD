@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { TestCaseVariations } from "@/components/tools/TestCaseVariations";
 import { AgentConfig } from "@/types";
 import PersonaSelector from "@/components/tools/personaSelector";
-
+import { Button } from "@/components/ui/button";
 
 export default function TestCasesPage() {
   const [agentCases, setAgentCases] = useState<AgentConfig[]>([]);
@@ -54,76 +54,113 @@ export default function TestCasesPage() {
     }
   };
 
-  const showBulkActions = agentCases.length > 1 && selectedIds.length > 0;
+  // Placeholder for delete functionality
+  const deleteSelectedCases = () => {
+    console.log("Delete selected cases:", selectedIds);
+    // Implement delete functionality here
+  };
 
   if (!isMounted) {
     return null;
   }
 
   return (
-    <div className="grid grid-cols-12 gap-4 p-6">
-      {/* Agent Cases Column */}
-      <div className="col-span-4">
-        <Card className="bg-background border-border border max-h-screen overflow-y-auto scrollbar-thin scrollbar-thumb-zinc-700 scrollbar-track-zinc-900">
-          <CardHeader>
-            <div className="flex justify-between items-center">
-              <CardTitle>Agent Cases</CardTitle>
-              <Badge variant="outline" className="bg-background">
-                {agentCases.length} Cases
-              </Badge>
-            </div>
-            <div className="flex mt-2">
-            </div>
-          </CardHeader>
-          <CardContent className="max-h-[calc(100vh-12rem)] overflow-y-auto">
-            <div className="space-y-2">
-              {agentCases.map((test) => (
-                <div
-                  key={test.id}
-                  className={`p-4 rounded-[var(--radius)] cursor-pointer transition-colors ${
-                    selectedCase?.id === test.id
-                      ? "bg-background border border-zinc-700"
-                      : "bg-background hover:bg-background"
-                  }`}
-                  onClick={() => handleCaseSelect(test)}
+    <div className="p-6">
+      <div className="flex justify-between items-center mb-6">
+        <div>
+          <h1 className="text-3xl font-bold">Test Scenarios</h1>
+          <p className="text-muted-foreground">Manage test cases and personas for your agents</p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-12 gap-4">
+        {/* Agent Cases Column */}
+        <div className="col-span-4">
+          <Card className="bg-background border-border border h-full">
+            <CardHeader>
+              <div className="flex justify-between items-center">
+                <CardTitle>Agent Cases</CardTitle>
+                <Badge variant="outline" className="bg-background">
+                  {agentCases.length} Cases
+                </Badge>
+              </div>
+              <div className="flex gap-2 mt-2">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={selectAllCases}
+                  className="text-xs"
                 >
-                  <div className="flex justify-between items-start">
-                    <div className="flex items-center">
-                      <input
-                        type="checkbox"
-                        checked={selectedIds.includes(test.id)}
-                        onChange={() => toggleSelectCase(test.id)}
-                        className="mr-2"
-                      />
-                      <h3 className="font-medium">
-                        {test.name || "Unnamed Test"}
-                      </h3>
+                  {selectedIds.length === agentCases.length && agentCases.length > 0
+                    ? "Deselect All"
+                    : "Select All"}
+                </Button>
+                {selectedIds.length > 0 && (
+                  <Button 
+                    variant="destructive" 
+                    size="sm"
+                    className="text-xs"
+                    onClick={deleteSelectedCases}
+                  >
+                    Delete Selected
+                  </Button>
+                )}
+              </div>
+            </CardHeader>
+            <CardContent className="max-h-[calc(100vh-12rem)] overflow-y-auto">
+              <div className="space-y-2">
+                {agentCases.map((test) => (
+                  <div
+                    key={test.id}
+                    className={`p-4 rounded-[var(--radius)] cursor-pointer transition-colors border ${
+                      selectedCase?.id === test.id
+                        ? "border-primary bg-accent/10"
+                        : "border-border hover:bg-accent/5"
+                    }`}
+                    onClick={() => handleCaseSelect(test)}
+                  >
+                    <div className="flex justify-between items-start">
+                      <div className="flex items-center">
+                        <input
+                          type="checkbox"
+                          checked={selectedIds.includes(test.id)}
+                          onChange={(e) => {
+                            e.stopPropagation();
+                            toggleSelectCase(test.id);
+                          }}
+                          onClick={(e) => e.stopPropagation()}
+                          className="mr-2"
+                        />
+                        <h3 className="font-medium">
+                          {test.name || "Unnamed Test"}
+                        </h3>
+                      </div>
                     </div>
+                    <p className="text-sm text-muted-foreground mt-1 truncate max-w-[300px]">
+                      Endpoint: {test.endpoint}
+                    </p>
                   </div>
-                  <p className="text-sm text-zinc-400 mt-1 truncate max-w-[300px]">
-                    Endpoint: {test.endpoint}
-                  </p>
-                </div>
-              ))}
+                ))}
 
-              {agentCases.length === 0 && (
-                <div className="text-center py-8 text-zinc-500">
-                  No agent cases yet. Create a test from the Dashboard.
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+                {agentCases.length === 0 && (
+                  <div className="text-center py-8 text-zinc-500">
+                    No agent cases yet. Create a test from the Dashboard.
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
 
-      {/* Persona Selector Column moved to the middle */}
-      <div className="col-span-4">
-        <TestCaseVariations selectedTestId={selectedCase?.id || ""} />
-      </div>
+        {/* Test Case Variations Column */}
+        <div className="col-span-4">
+          <TestCaseVariations selectedTestId={selectedCase?.id || ""} />
+        </div>
 
-      {/* Test Case Variations Column moved to the right */}
-      <div className="col-span-4">
-        <PersonaSelector selectedTest={selectedCase?.id || ""} />
+        {/* Persona Selector Column */}
+        <div className="col-span-4">
+          <PersonaSelector selectedTest={selectedCase?.id || ""} />
+        </div>
       </div>
     </div>
   );
