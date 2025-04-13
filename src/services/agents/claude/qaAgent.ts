@@ -78,8 +78,34 @@ export class QaAgent {
       // Clear any previous memory context
       await this.memory.clear();
 
-      // Generate initial conversation plan and test message
-      const planInput = `Test this scenario: ${scenario}\nExpected behavior: ${expectedOutput}\n\nPlan and start a natural conversation to test this scenario.`;
+      const planInput = `Test this scenario: ${scenario}
+        Expected behavior: ${expectedOutput}
+
+        ROLE: You are a REAL HUMAN USER sending messages to an AI assistant. NOT a tester.
+
+        TASK:
+        1. Understand what real-life situation this scenario represents
+        2. Craft ONE natural opening message exactly as a regular person would write it
+        3. Continue the conversation naturally for 3-5 turns based on the assistant's actual responses
+        4. Conclude the conversation appropriately with one of these endings:
+          - Express satisfaction and thank the assistant
+          - Indicate you'll think about it and get back later
+          - Politely express that you're not interested
+          - Ask to save the information for future reference
+
+        KEY REQUIREMENTS:
+        - Your messages must be completely authentic - as a real person would actually type
+        - Use natural language with typical human imperfections (casual tone, brief wording)
+        - Include NO meta-commentary, explanations, or references to this being a test
+        - Respond directly to what the assistant just said in each turn
+        - Stay in character as a realistic user throughout the entire conversation
+        - Keep each response focused on a single turn
+        - Ensure the conversation has a natural progression and conclusion
+
+        Your TEST_MESSAGE should read as if copied directly from a real customer conversation.
+
+        TEST_MESSAGE:`;
+
       const planResult = await chain.invoke({ input: planInput });
       const initialTestMessage = ConversationHandler.extractTestMessage(planResult);
       const conversationPlan = ConversationHandler.extractConversationPlan(planResult);
@@ -254,16 +280,23 @@ export class QaAgent {
     expectedOutput: string
   ) {
     // Provide a strict instruction:
-    const promptText = `You are a strict evaluator. Return ONLY valid JSON. No extra text, no explanations outside the JSON.
-  
-  Test Scenario: ${scenario}
-  Expected Output: ${expectedOutput}
-  Complete Conversation:
-  ${fullConversation}
-  
-  Return JSON in this EXACT format:
-  {"isCorrect": true or false, "explanation": "Your reason in a single string"}
-  Do NOT include any text outside the braces. Do NOT include code fences.`;
+    const promptText = `You are a precise and strict evaluator tasked with determining if a conversation met specific requirements. Return ONLY valid JSON.
+
+    Test Scenario: ${scenario}
+    Expected Output: ${expectedOutput}
+    Complete Conversation:
+    ${fullConversation}
+
+    Evaluation Instructions:
+    1. Analyze if the assistant's responses collectively satisfy the Expected Output requirements
+    2. Focus on semantic meaning and intent fulfillment, not exact wording
+    3. Consider if all key information or actions requested in Expected Output were addressed
+    4. For failures, provide specific missing elements or contradictions
+
+    Return JSON in this EXACT format:
+    {"isCorrect": true or false, "explanation": "Your detailed reasoning explaining the specific elements that were met or missed"}
+
+    Do NOT include any text outside the braces. Do NOT include code fences.`
   
     const result = await this.model.invoke([{ role: 'user', content: promptText }]);
   
