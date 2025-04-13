@@ -13,7 +13,7 @@ interface PersonaDialogProps {
   onCancel: () => void;
   title: string;
   buttonText: string;
-  children: ReactNode;
+  children?: ReactNode;
 }
 
 export function PersonaDialog({

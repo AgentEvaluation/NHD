@@ -17,6 +17,8 @@ export default function PersonasScreen() {
 
   const [editingPersona, setEditingPersona] = useState<Persona | null>(null)
   const [isNewPersonaDialogOpen, setIsNewPersonaDialogOpen] = useState(false)
+  const [selectedPersona, setSelectedPersona] = useState<Persona | null>(null);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [newPersona, setNewPersona] = useState<Persona>({
     id: "",
     name: "",
@@ -62,7 +64,8 @@ export default function PersonasScreen() {
 
 
   const handleEditPersona = (persona: Persona) => {
-    setEditingPersona({ ...persona })
+    setSelectedPersona(persona);
+    setIsEditDialogOpen(true);      
   }
 
   const handleSaveEdit = () => {
@@ -153,6 +156,41 @@ export default function PersonasScreen() {
     }
   }
 
+  const handleSavePersona = async () => {
+    try {
+      setLoading(true);
+      const method = selectedPersona?.id ? "PUT" : "POST";
+      const url = selectedPersona?.id
+        ? `/api/tools/personas/${selectedPersona.id}`
+        : "/api/tools/personas";
+  
+      const response = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(selectedPersona),
+      });
+
+      console.log("Res-Giri", response);
+  
+      if (!response.ok) throw new Error(`Failed to ${selectedPersona?.id ? "update" : "create"} persona`);
+  
+      const updatedPersona = await response.json();
+      setPersonas((prev) =>
+        selectedPersona?.id
+          ? prev.map((p) => (p.id === selectedPersona.id ? updatedPersona : p))
+          : [...prev, updatedPersona]
+      );
+  
+      setIsNewPersonaDialogOpen(false);
+      setIsEditDialogOpen(false);
+      setSelectedPersona(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "An error occurred");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="container mx-auto py-6">
       <div className="flex justify-between items-center mb-6">
@@ -176,6 +214,19 @@ export default function PersonasScreen() {
             New Persona
           </Button>
         </PersonaDialog>
+
+        {selectedPersona && (
+          <PersonaDialog
+            open={isEditDialogOpen}
+            onOpenChange={setIsEditDialogOpen}
+            persona={selectedPersona}
+            setPersona={setSelectedPersona}
+            onSave={handleSavePersona}
+            onCancel={() => setIsEditDialogOpen(false)}
+            title="Edit Persona"
+            buttonText="Update Persona"
+          />
+        )}
       </div>
 
       <Tabs defaultValue="all" className="w-full">

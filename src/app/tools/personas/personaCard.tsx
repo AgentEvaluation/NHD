@@ -2,7 +2,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardContent, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Persona } from "@/types";
 import { PersonaReadOnlyView } from "./personaReadOnlyView";
-import { PersonaEditForm } from "./personaEditForm";
 import { Edit, Trash2, X, Check } from "lucide-react";
 
 interface PersonaCardProps {
@@ -32,7 +31,7 @@ export function PersonaCard({
     <Card className="relative">
       {isEditing ? (
         <>
-          <PersonaEditForm persona={editingPersona} setPersona={setEditingPersona} />
+          
           <CardFooter className="flex justify-end gap-2">
             <Button size="sm" variant="ghost" onClick={onCancel}>
               <X className="h-4 w-4" />
