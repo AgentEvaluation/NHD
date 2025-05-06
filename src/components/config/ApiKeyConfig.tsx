@@ -6,7 +6,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogClose
+  DialogClose,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,17 +25,16 @@ interface ApiKeyConfigProps {
   setIsOpen: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
-export default function ApiKeyConfig() {
+export default function ApiKeyConfig({ isOpen, setIsOpen }: ApiKeyConfigProps) {
   const [keyName, setKeyName] = useState("");
   const [apiKey, setApiKey] = useState("");
   const [selectedModel, setSelectedModel] = useState(AnthropicModel.Sonnet3_5);
-  const [isOpen, setIsOpen] = useState(false);
 
   const handleSave = () => {
     localStorage.setItem("anthropic_api_key", apiKey);
     localStorage.setItem("anthropic_key_name", keyName);
     localStorage.setItem("anthropic_model", selectedModel);
-    setIsOpen(false);
+    setIsOpen(false); // Close the modal after saving
   };
 
   return (

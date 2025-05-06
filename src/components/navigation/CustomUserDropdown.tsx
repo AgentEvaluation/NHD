@@ -4,7 +4,8 @@ import { UserButton } from "@clerk/nextjs";
 import { useTheme } from "next-themes";
 import ApiKeyConfig from "@/components/config/ApiKeyConfig";
 import { useState } from "react";
-import { KeyRound, Sun, Moon } from "lucide-react";
+import { KeyRound, ToggleLeft, ToggleRight } from "lucide-react";
+// import ThemeToggleButton from "../ui/theme-toggle-button";
 
 export default function CustomUserDropdown() {
   const { theme, setTheme } = useTheme();
@@ -20,13 +21,13 @@ export default function CustomUserDropdown() {
             onClick={() => setIsApiKeyModalOpen(true)}
           />
           <UserButton.Action
-            label={theme === "dark" ? "Light Theme" : "Dark Theme"}
+            label="Dark Theme"
             labelIcon={
               theme === "dark" ? (
-                <Sun className="h-4 w-4" />
+                <ToggleRight className="h-8 w-8 -mt-2 -ml-2 stroke-1" />
               ) : (
-                <Moon className="h-4 w-4" />
-              ) // Conditionally render Sun or Moon
+                <ToggleLeft className="h-8 w-8 -mt-2 -ml-2 stroke-1" />
+              )
             }
             onClick={() => setTheme(theme === "light" ? "dark" : "light")}
           />
@@ -35,8 +36,8 @@ export default function CustomUserDropdown() {
 
       {/* API Key Config Modal */}
       <ApiKeyConfig
-        // isOpen={isApiKeyModalOpen}
-        // setIsOpen={setIsApiKeyModalOpen}
+        isOpen={isApiKeyModalOpen}
+        setIsOpen={setIsApiKeyModalOpen}
       />
     </>
   );

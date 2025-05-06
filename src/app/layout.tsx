@@ -1,23 +1,28 @@
-import './globals.css'
-import { Inter } from 'next/font/google'
-import { ClerkProvider, SignInButton, SignedIn, SignedOut } from '@clerk/nextjs'
-import { ThemeProvider } from './providers'
+import "./globals.css";
+import { Inter } from "next/font/google";
+import {
+  ClerkProvider,
+  SignInButton,
+  SignedIn,
+  SignedOut,
+} from "@clerk/nextjs";
+import { ThemeProvider } from "./providers";
 import CustomUserDropdown from "@/components/navigation/CustomUserDropdown";
-import SignupHandler from '@/components/authentication/SignupHandler';
-import ApiKeyConfig from '@/components/config/ApiKeyConfig';
+import SignupHandler from "@/components/authentication/SignupHandler";
+// import ApiKeyConfig from '@/components/config/ApiKeyConfig';
 
-const inter = Inter({ subsets: ['latin'] })
+const inter = Inter({ subsets: ["latin"] });
 
 export default function RootLayout({
   children,
 }: {
-  children: React.ReactNode
+  children: React.ReactNode;
 }) {
   return (
-   <ClerkProvider>
-    <SignupHandler />
-    <html lang="en" suppressHydrationWarning>
-      <body className={`${inter.className} min-h-screen antialiased`}>
+    <ClerkProvider>
+      <SignupHandler />
+      <html lang="en" suppressHydrationWarning>
+        <body className={`${inter.className} min-h-screen antialiased`}>
           <ThemeProvider
             attribute="class"
             defaultTheme="dark"
@@ -42,14 +47,14 @@ export default function RootLayout({
                 </SignedIn>
               </div>
             </header>
-            
-          <main className="flex min-h-screen flex-col">
-            {children}
-            <ApiKeyConfig />
-          </main>
-        </ThemeProvider>
-      </body>
-    </html>
-  </ClerkProvider>
+
+            <main className="flex min-h-screen flex-col">
+              {children}
+              {/* <ApiKeyConfig /> */}
+            </main>
+          </ThemeProvider>
+        </body>
+      </html>
+    </ClerkProvider>
   );
 }
