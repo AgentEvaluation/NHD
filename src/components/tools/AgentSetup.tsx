@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Plus, Trash, Code, List } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
-import { useState } from "react";
+import { useState ,  MutableRefObject } from "react";
 import { Label } from "../ui/label";
 
 interface Props {
@@ -15,11 +15,15 @@ interface Props {
   setHeaders: (headers: { key: string; value: string }[]) => void;
   body: string;
   setBody: (body: string) => void;
+  agentEndpointRef: MutableRefObject<HTMLInputElement | null>;
+  requestBodyRef: MutableRefObject<HTMLTextAreaElement | null>;
+  headerKeyRef: MutableRefObject<HTMLInputElement | null>;
+  headerValueRef: MutableRefObject<HTMLInputElement | null>;
+  activeTab: string;
+  setActiveTab: (tab: string) => void;
 }
 
-export default function AgentSetup({ agentEndpoint, setAgentEndpoint, headers, setHeaders, body, setBody }: Props) {
-  const [activeTab, setActiveTab] = useState("headers");
-
+export default function AgentSetup({ agentEndpoint, setAgentEndpoint, headers, setHeaders, body, setBody, agentEndpointRef, requestBodyRef, headerKeyRef, headerValueRef, activeTab, setActiveTab }: Props) {
   const addHeader = () => setHeaders([...headers, { key: "", value: "" }]);
   const removeHeader = (index: number) => setHeaders(headers.filter((_, i) => i !== index));
   const updateHeader = (index: number, field: "key" | "value", value: string) => {
@@ -45,6 +49,7 @@ export default function AgentSetup({ agentEndpoint, setAgentEndpoint, headers, s
             value={agentEndpoint ?? ""}
             onChange={(e) => setAgentEndpoint(e.target.value)}
             placeholder="https://your-agent-endpoint.com/api"
+            ref={agentEndpointRef}  
           />
         </div>
 
@@ -84,12 +89,14 @@ export default function AgentSetup({ agentEndpoint, setAgentEndpoint, headers, s
                   value={header.key ?? ""}
                   onChange={(e) => updateHeader(index, "key", e.target.value)}
                   className="flex-1"
+                  ref={index === 0 ? headerKeyRef : undefined} 
                 />
                 <Input
                   placeholder="Header value"
                   value={header.value ?? ""}
                   onChange={(e) => updateHeader(index, "value", e.target.value)}
                   className="flex-1"
+                  ref={index === 0 ? headerValueRef : undefined}  
                 />
                 <Button variant="ghost" size="icon" onClick={() => removeHeader(index)}>
                   <Trash className="h-4 w-4" />
@@ -112,6 +119,7 @@ export default function AgentSetup({ agentEndpoint, setAgentEndpoint, headers, s
                 font-mono
                 text-sm
               "
+              ref={requestBodyRef}
               />
               </div>
         )}

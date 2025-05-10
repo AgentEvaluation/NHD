@@ -1,5 +1,5 @@
 // AgentDescription.tsx
-import React from 'react';
+import React, { MutableRefObject } from 'react';
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { ChevronDown } from 'lucide-react'; // Add this import
@@ -9,13 +9,17 @@ interface AgentDescriptionProps {
   userDescription: string;
   onAgentDescriptionChange: (value: string) => void;
   onUserDescriptionChange: (value: string) => void;
+  agentDescriptionRef: MutableRefObject<HTMLTextAreaElement | null>;
+  idealUserProfileRef: MutableRefObject<HTMLTextAreaElement | null>;
 }
 
 export default function AgentDescription({
   agentDescription,
   userDescription,
   onAgentDescriptionChange,
-  onUserDescriptionChange
+  onUserDescriptionChange,
+  agentDescriptionRef,
+  idealUserProfileRef
 }: AgentDescriptionProps) {
   const [isCollapsed, setIsCollapsed] = React.useState(false);
 
@@ -44,6 +48,7 @@ export default function AgentDescription({
                 value={agentDescription}
                 onChange={(e) => onAgentDescriptionChange(e.target.value)}
                 className="mt-1.5 bg-background border-border border h-32 "
+                ref={agentDescriptionRef}
               />
             </div>
             <div>
@@ -53,6 +58,7 @@ export default function AgentDescription({
                 value={userDescription}
                 onChange={(e) => onUserDescriptionChange(e.target.value)}
                 className="mt-1.5 bg-background border-border border h-32 "
+                ref={idealUserProfileRef} 
               />
             </div>
           </div>

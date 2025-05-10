@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useAgentConfig } from "@/hooks/useAgentConfig";
 import AgentSetup from "@/components/tools/AgentSetup";
 import AgentResponse from "@/components/tools/AgentResponse";
@@ -45,9 +45,73 @@ export default function ToolsPage() {
   } = useAgentConfig();
 
   const [activeTab, setActiveTab] = useState("description");
+  const [activeHeadersBodyTab, setActiveHeadersBodyTab] = useState("headers");
+
+  const agentDescriptionRef = useRef<HTMLTextAreaElement | null>(null);
+  const idealUserProfileRef = useRef<HTMLTextAreaElement | null>(null);
+  const agentEndpointRef = useRef<HTMLInputElement | null>(null);
+  const headerKeyRef = useRef<HTMLInputElement | null>(null);
+  const headerValueRef = useRef<HTMLInputElement | null>(null);
+  const requestBodyRef = useRef<HTMLTextAreaElement | null>(null);
+  
+  const handleTabNavigation = (e: KeyboardEvent) => {
+    if (e.key === "Tab" && !e.shiftKey) {
+      e.preventDefault();
+      const activeElement = document.activeElement;
+      if (activeElement === agentDescriptionRef.current) {
+        idealUserProfileRef.current?.focus();
+        return;
+      }
+      if (activeElement === idealUserProfileRef.current) {
+        setActiveTab("testing");
+        setTimeout(() => {
+          agentEndpointRef.current?.focus();
+        }, 50);
+        return;
+      }
+      if (activeElement === agentEndpointRef.current) {
+        setActiveHeadersBodyTab("headers");
+        setTimeout(() => {
+          headerKeyRef.current?.focus();
+        }, 50);
+        return;
+      }
+      if (activeElement === headerKeyRef.current) {
+        headerValueRef.current?.focus();
+        return;
+      }
+      if (activeElement === headerValueRef.current) {
+        setActiveHeadersBodyTab("body");
+        setTimeout(() => {
+          requestBodyRef.current?.focus();
+        }, 50);
+        return;
+      }
+      if (activeElement === requestBodyRef.current) {
+        setActiveTab("description");
+        setActiveHeadersBodyTab("headers");
+        setTimeout(() => {
+          agentDescriptionRef.current?.focus();
+        }, 50);
+        return;
+      }
+      setActiveTab("description");
+      setActiveHeadersBodyTab("headers");
+      setTimeout(() => {
+        agentDescriptionRef.current?.focus();
+      }, 50);
+    }
+  };
+  
+  useEffect(() => {
+    window.addEventListener("keydown", handleTabNavigation);
+    return () => {
+      window.removeEventListener("keydown", handleTabNavigation);
+    };
+  }, []);
 
   return (
-    <div className="relative min-h-screen p-6">
+    <div className="relative min-h-screen p-6" tabIndex={-1}>
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-xl font-semibold">Configure Agent</h2>
         <div className="flex gap-2">
@@ -136,6 +200,8 @@ export default function ToolsPage() {
             userDescription={userDescription}
             onAgentDescriptionChange={setAgentDescription}
             onUserDescriptionChange={setUserDescription}
+            agentDescriptionRef={agentDescriptionRef}
+            idealUserProfileRef={idealUserProfileRef}
           />
           <div className="flex justify-end mt-4">
             <Button onClick={() => setActiveTab("testing")}>Next</Button>
@@ -152,6 +218,12 @@ export default function ToolsPage() {
                 setHeaders={setHeaders}
                 body={body}
                 setBody={setbody}
+                agentEndpointRef={agentEndpointRef}
+                requestBodyRef={requestBodyRef}
+                headerKeyRef={headerKeyRef}
+                headerValueRef={headerValueRef}
+                activeTab={activeHeadersBodyTab}
+                setActiveTab={setActiveHeadersBodyTab}
               />
               <Button
                 onClick={testManually}
